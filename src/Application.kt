@@ -7,6 +7,8 @@ import io.ktor.features.*
 import io.ktor.routing.*
 import io.ktor.http.*
 import io.ktor.gson.*
+import net.prosavage.db.MongoClient
+import net.prosavage.db.User
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -31,9 +33,26 @@ fun Application.module(testing: Boolean = false) {
 
     routing {
 
-        post("/update-gems") {
-            val post = call.receive<UpdateGemsInfo>()
-            call.respond(mapOf("amt" to post.gemsAmt))
+        post("/register-user") {
+            val post = call.receive<User>()
+            val user = MongoClient.getUser(post.uuid) ?: kotlin.run {
+                val theUser = User(post.uuid, post.name, post.tokens)
+                MongoClient.registerUser(theUser)
+                call.respond(mapOf("message" to "Registered new user.", "new-user" to theUser))
+                return@post
+            }
+            call.respond(mapOf("message" to "user already exists.", "existing-user" to user))
+
+        }
+
+        post("/update-tokens") {
+            val post = call.receive<UpdateTokensPost>()
+            val user = MongoClient.getUser(post.uuid) ?: kotlin.run {
+                call.respond(mapOf("message" to "user does not exist"))
+                return@post
+            }
+            MongoClient.updateUserTokens(user.uuid, post.tokensAmt)
+            call.respond(mapOf("message" to "successfully updated user", "updated-user" to MongoClient.getUser(user.uuid)))
         }
 
         get("/") {
@@ -42,4 +61,4 @@ fun Application.module(testing: Boolean = false) {
     }
 }
 
-data class UpdateGemsInfo(val uuid: String, val gemsAmt: Int)
+data class UpdateTokensPost(val uuid: String, val tokensAmt: Int)
