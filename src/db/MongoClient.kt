@@ -31,6 +31,11 @@ object MongoClient {
         getUserCollection().updateOne(User::uuid eq uuid, setValue(User::tokens, amt))
     }
 
+    fun updateUserName(uuid: String, name: String) {
+        getUserCollection().updateOne(User::uuid eq uuid, setValue(User::name, name))
+    }
+
+
 }
 
 data class User(val uuid: String, val name: String, val tokens: Int)

@@ -45,6 +45,22 @@ fun Application.module(testing: Boolean = false) {
 
         }
 
+
+        post("/update-name") {
+            val post = call.receive<UpdateNamePost>()
+            val user = MongoClient.getUser(post.uuid) ?: kotlin.run {
+                call.respond(mapOf("message" to "user does not exist"))
+                return@post
+            }
+            if (user.name == post.name) {
+                call.respond(mapOf("message" to "This player's name has not changed."))
+                return@post
+            }
+            MongoClient.updateUserName(user.uuid, post.name)
+            call.respond(mapOf("message" to "successfully updated user's name", "updated-user" to MongoClient.getUser(user.uuid)))
+        }
+
+
         post("/update-tokens") {
             val post = call.receive<UpdateTokensPost>()
             val user = MongoClient.getUser(post.uuid) ?: kotlin.run {
@@ -52,7 +68,7 @@ fun Application.module(testing: Boolean = false) {
                 return@post
             }
             MongoClient.updateUserTokens(user.uuid, post.tokensAmt)
-            call.respond(mapOf("message" to "successfully updated user", "updated-user" to MongoClient.getUser(user.uuid)))
+            call.respond(mapOf("message" to "successfully updated user's tokens", "updated-user" to MongoClient.getUser(user.uuid)))
         }
 
         get("/") {
@@ -60,5 +76,7 @@ fun Application.module(testing: Boolean = false) {
         }
     }
 }
+
+data class UpdateNamePost(val uuid: String, val name: String)
 
 data class UpdateTokensPost(val uuid: String, val tokensAmt: Int)
